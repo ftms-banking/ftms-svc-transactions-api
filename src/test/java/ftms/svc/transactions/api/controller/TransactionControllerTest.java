@@ -27,4 +27,18 @@ public class TransactionControllerTest {
 
         assertThat(response).isNotNull();
     }
+    @Test
+    void shouldReturnCreatedTransaction() throws Exception {
+        stubFor(post(urlEqualTo("/api/v1/transactions"))
+                .withRequestBody(containing("txn-2025-11-03-12345"))
+                .willReturn(aResponse()
+                        .withStatus(201)
+                        .withHeader("Content-Type", "application/json")
+                        .withBodyFile("transaction-created.json")));
+
+        var response = WireMock.post("/api/v1/transactions");
+
+        assertThat(response).isNotNull();
+    }
+
 }

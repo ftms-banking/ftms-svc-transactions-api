@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -57,4 +58,12 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         Page<TransactionJpaEntity> entities = jpaRepository.findAll(spec, pageable);
         return entities.map(transactionMapper::toDomain);
     }
+
+
+        @Override
+        public Optional<TransactionJpaEntity> findByIdempotencyKey(String idempotencyKey) {
+            return jpaRepository.findByIdempotencyKey(idempotencyKey);
+        }
+
+
 }
