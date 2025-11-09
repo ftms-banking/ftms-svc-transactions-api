@@ -35,6 +35,34 @@ public class TransactionJpaEntity {
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
+    // --- JPA requires a no-args constructor ---
+    public TransactionJpaEntity() {}
+
+    // Optional: all-args constructor for convenience
+    public TransactionJpaEntity(UUID uuid,
+                                String idempotencyKey,
+                                UUID sourceAccountId,
+                                UUID destinationAccountId,
+                                BigDecimal amount,
+                                String currency,
+                                String description,
+                                String type,
+                                String status,
+                                OffsetDateTime createdAt,
+                                OffsetDateTime completedAt) {
+        this.uuid = uuid;
+        this.idempotencyKey = idempotencyKey;
+        this.sourceAccountId = sourceAccountId;
+        this.destinationAccountId = destinationAccountId;
+        this.amount = amount;
+        this.currency = currency;
+        this.description = description;
+        this.type = type;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.completedAt = completedAt;
+    }
+
     // --- Getters and setters ---
 
     public UUID getUuid() { return uuid; }

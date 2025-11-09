@@ -6,13 +6,13 @@ import ftms.svc.transactions.api.application.dto.TransactionResponse;
 import ftms.svc.transactions.api.application.mapper.TransactionMapper;
 import ftms.svc.transactions.api.application.usecase.CreateTransactionUseCase;
 import ftms.svc.transactions.api.application.usecase.GetTransactionsUseCase;
-import ftms.svc.transactions.api.constants.FtmsTransactionsApiConstants;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +24,7 @@ import java.util.UUID;
 @RequestMapping("api/v1/transactions")
 @CrossOrigin(origins = "*") // Allow all origins
 @RequiredArgsConstructor
-//@Validated
+@Validated
 @Slf4j
 public class FtmsTransactionsController {
 
@@ -38,15 +38,22 @@ public class FtmsTransactionsController {
     }
 
     @GetMapping
-    public TransactionPageResponse getTransactions(
+    public ResponseEntity<TransactionPageResponse>  getTransactions(
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @RequestParam(required = false) UUID accountId,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) OffsetDateTime fromDate,
             @RequestParam(required = false) OffsetDateTime toDate,
-            @PageableDefault(page = 0, size = 20) Pageable pageable
-    ) {
-        return getTransactionsUseCase.execute(accountId, type, status, fromDate, toDate, pageable);
+            @RequestParam(defaultValue = "0") @jakarta.validation.constraints.Min(value = 0, message = "Page index must not be negative") int page,
+            @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Positive(message = "Page size must be greater than zero") int size
+    ){
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        var response = getTransactionsUseCase.execute(accountId, type, status, fromDate, toDate,pageable );
+        return ResponseEntity.ok()
+                .header("X-Correlation-ID", correlationId)
+                .body(response);
     }
 
     @PostMapping

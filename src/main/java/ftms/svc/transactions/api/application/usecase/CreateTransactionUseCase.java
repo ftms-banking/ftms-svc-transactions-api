@@ -38,7 +38,7 @@ public class CreateTransactionUseCase {
             throw new IllegalArgumentException("Duplicate transaction (idempotency key exists)");
         }
 
-        // Map to JPA entity
+        // Map request to JPA entity
         TransactionJpaEntity entity = new TransactionJpaEntity();
         entity.setUuid(UUID.randomUUID());
         entity.setIdempotencyKey(request.getIdempotencyKey());
@@ -47,14 +47,15 @@ public class CreateTransactionUseCase {
         entity.setAmount(request.getAmount());
         entity.setCurrency(request.getCurrency());
         entity.setDescription(request.getDescription());
-        entity.setType(request.getType());
+        entity.setType(request.getType() != null ? request.getType() : null);
         entity.setStatus(TransactionStatus.PENDING.name());
         entity.setCreatedAt(OffsetDateTime.now());
 
-        // Save
+        // Save JPA entity
         TransactionJpaEntity saved = transactionJpaRepository.save(entity);
 
         // Convert to domain
         return transactionMapper.toDomain(saved);
     }
+
 }

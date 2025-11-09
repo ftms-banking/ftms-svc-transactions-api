@@ -21,8 +21,8 @@ public class TransactionMapper {
         dto.setAmount(tx.getAmount());
         dto.setCurrency(tx.getCurrency());
         dto.setDescription(tx.getDescription());
-        dto.setStatus(tx.getStatus().name());
-        dto.setType(tx.getType().name());
+        dto.setStatus(tx.getStatus() != null ? tx.getStatus().name() : null);
+        dto.setType(tx.getType() != null ? tx.getType().name() : null);
         dto.setCreatedAt(tx.getCreatedAt());
         dto.setCompletedAt(tx.getCompletedAt());
         return dto;
@@ -36,12 +36,28 @@ public class TransactionMapper {
                 entity.getAmount(),
                 entity.getCurrency(),
                 entity.getDescription(),
-                TransactionStatus.valueOf(entity.getStatus()),
-                TransactionType.valueOf(entity.getType()),
+                entity.getStatus() != null ? TransactionStatus.valueOf(entity.getStatus()) : null,
+                entity.getType() != null ? TransactionType.valueOf(entity.getType()) : null,
                 entity.getCreatedAt(),
                 entity.getCompletedAt(),
                 entity.getIdempotencyKey()
         );
+    }
+
+    public TransactionJpaEntity toEntity(Transaction tx) {
+        var entity = new TransactionJpaEntity();
+        entity.setUuid(tx.getUuid());
+        entity.setIdempotencyKey(tx.getIdempotencyKey());
+        entity.setSourceAccountId(tx.getSourceAccountId());
+        entity.setDestinationAccountId(tx.getDestinationAccountId());
+        entity.setAmount(tx.getAmount());
+        entity.setCurrency(tx.getCurrency());
+        entity.setDescription(tx.getDescription());
+        entity.setStatus(tx.getStatus() != null ? tx.getStatus().name() : null);
+        entity.setType(tx.getType() != null ? tx.getType().name() : null);
+        entity.setCreatedAt(tx.getCreatedAt());
+        entity.setCompletedAt(tx.getCompletedAt());
+        return entity;
     }
 
     public TransactionPageResponse toPageResponse(Page<Transaction> page) {
