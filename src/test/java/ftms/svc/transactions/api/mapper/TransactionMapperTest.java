@@ -38,10 +38,17 @@ class TransactionMapperTest {
     @Test
     void shouldMapDomainToResponse() {
         Transaction tx = new Transaction(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                BigDecimal.valueOf(100), "USD", "desc",
-                TransactionStatus.PENDING, TransactionType.DEPOSIT,
-                OffsetDateTime.now(), null, "key123"
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                BigDecimal.valueOf(100),
+                "USD",
+                "desc",
+                TransactionStatus.PENDING,
+                TransactionType.DEPOSIT,
+                OffsetDateTime.now(),
+                null,
+                "key123"
         );
 
         TransactionResponse response = mapper.toResponse(tx);

@@ -13,7 +13,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +35,6 @@ class GetTransactionsUseCaseTest {
 
     @Test
     void shouldReturnTransactionPage() {
-        // Create a real Transaction object
         Transaction transaction = new Transaction(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -51,9 +49,7 @@ class GetTransactionsUseCaseTest {
                 "idempotency-key-123"
         );
 
-
         var pageRequest = PageRequest.of(0, 10);
-
         when(transactionRepository.findByFilters(null, null, null, null, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(transaction)));
 
@@ -61,7 +57,6 @@ class GetTransactionsUseCaseTest {
 
         assertNotNull(response);
         assertEquals(1, response.getContent().size());
-
         var txResponse = response.getContent().get(0);
         assertEquals(transaction.getUuid(), txResponse.getUuid());
         assertEquals(transaction.getAmount(), txResponse.getAmount());

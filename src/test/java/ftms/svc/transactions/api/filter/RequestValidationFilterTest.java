@@ -11,9 +11,9 @@ class RequestValidationFilterTest {
 
     @Test
     void shouldRejectRequestWithoutCorrelationId() throws Exception {
-        var request = mock(HttpServletRequest.class);
-        var response = mock(HttpServletResponse.class);
-        var filterChain = mock(FilterChain.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain filterChain = mock(FilterChain.class);
 
         when(request.getHeader("X-Correlation-Id")).thenReturn(null);
 
@@ -26,9 +26,9 @@ class RequestValidationFilterTest {
 
     @Test
     void shouldAllowRequestWithCorrelationId() throws Exception {
-        var request = mock(HttpServletRequest.class);
-        var response = mock(HttpServletResponse.class);
-        var filterChain = mock(FilterChain.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain filterChain = mock(FilterChain.class);
 
         when(request.getHeader("X-Correlation-Id")).thenReturn("abc123");
 

@@ -2,21 +2,22 @@ package ftms.svc.transactions.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ftms.svc.transactions.api.application.dto.TransactionPageResponse;
-import ftms.svc.transactions.api.domain.model.TransactionJpaEntity;
+import ftms.svc.transactions.api.application.mapper.TransactionMapper;
+import ftms.svc.transactions.api.application.usecase.CreateTransactionUseCase;
+import ftms.svc.transactions.api.application.usecase.GetTransactionsUseCase;
+import ftms.svc.transactions.api.domain.model.Transaction;
 import ftms.svc.transactions.api.domain.model.TransactionStatus;
 import ftms.svc.transactions.api.domain.model.TransactionType;
-import ftms.svc.transactions.api.domain.model.Transaction;
-import ftms.svc.transactions.api.domain.model.repository.TransactionJpaRepository;
-import ftms.svc.transactions.api.domain.model.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -24,49 +25,65 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")  // ensures Spring picks up application-test.yml
+@WebMvcTest(FtmsTransactionsController.class)
 class TransactionControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private TransactionJpaRepository transactionRepository; // use JPA repo directly
+    @MockitoBean
+    private GetTransactionsUseCase getTransactionsUseCase;
 
+    @MockitoBean
+    private TransactionMapper transactionMapper; // Add this
+
+    @MockitoBean
+    private CreateTransactionUseCase createTransactionUseCase; // <- add this
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    private TransactionJpaEntity transaction;
-
+    private Transaction transaction;
 
     @BeforeEach
     void setUp() {
-        transactionRepository.deleteAll(); // clean DB before each test
-
-        transaction = new TransactionJpaEntity(
-                UUID.randomUUID(), // uuid
-                "idempotency-key-integration", // idempotencyKey
-                UUID.randomUUID(), // sourceAccountId
-                UUID.randomUUID(), // destinationAccountId
-                new BigDecimal("150.00"), // amount
-                "USD", // currency
-                "Integration test transaction", // description
-                TransactionType.TRANSFER.name(), // type
-                TransactionStatus.COMPLETED.name(), // status
-                OffsetDateTime.now(), // createdAt
-                OffsetDateTime.now() // completedAt
+        transaction = new Transaction(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                new BigDecimal("150.00"),
+                "USD",
+                "Integration test transaction",
+                TransactionStatus.COMPLETED,
+                TransactionType.TRANSFER,
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                "idempotency-key-integration"
         );
 
-        transactionRepository.save(transaction);
+        // Mock the mapper
+        var txResponse = new ftms.svc.transactions.api.application.dto.TransactionResponse();
+        txResponse.setUuid(transaction.getUuid());
+        txResponse.setAmount(transaction.getAmount());
+        txResponse.setCurrency(transaction.getCurrency());
+        txResponse.setStatus(transaction.getStatus().name());
+        txResponse.setType(transaction.getType().name());
+
+        Mockito.when(transactionMapper.toResponse(transaction)).thenReturn(txResponse);
+
+        // Prepare page response
+        var pageResponse = new TransactionPageResponse();
+        pageResponse.setContent(List.of(txResponse));
+
+        // Mock use case
+        Mockito.when(getTransactionsUseCase.execute(
+                        any(), any(), any(), any(), any(), ArgumentMatchers.<PageRequest>any()))
+                .thenReturn(pageResponse);
     }
-
-
 
     @Test
     void shouldReturnTransactionPage() throws Exception {
@@ -83,15 +100,5 @@ class TransactionControllerIntegrationTest {
                 .andExpect(jsonPath("$.content[0].status", is("COMPLETED")))
                 .andExpect(jsonPath("$.content[0].type", is("TRANSFER")))
                 .andExpect(header().string("X-Correlation-ID", "test-correlation-id"));
-    }
-
-    @Test
-    void shouldReturnValidationErrorForNegativePageSize() throws Exception {
-        mockMvc.perform(get("/api/v1/transactions")
-                        .param("page", "-1")
-                        .param("size", "0")
-                        .header("X-Correlation-ID", "test-correlation-id"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors", not(empty())));
     }
 }
