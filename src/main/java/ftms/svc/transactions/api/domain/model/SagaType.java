@@ -1,4 +1,6 @@
 package ftms.svc.transactions.api.domain.model;
 
-public class FtmsTransaction {
+public enum SagaType {
+    TRANSFER,
+    PAYMENT
 }
