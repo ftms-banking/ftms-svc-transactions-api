@@ -1,6 +1,6 @@
 spring:
   application:
-    name: ftms-backend
+    name: ftms-svc-transactions-api
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
@@ -14,27 +14,40 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
 
+  devtools:
+    restart:
+      enabled: true
+
 server:
   port: ${SERVER_PORT:8080}
+  error:
+      include-message: always
+      include-binding-errors: always
+
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
-  prometheus:
-    metrics:
-      export:
-        enabled: true
+        include: health, info, prometheus, metrics
 
 logging:
   level:
     root: INFO
-    com.ftms.backend: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    ftms.svc.transactions: DEBUG
 
+# 🔗 External service configs (for WebClient)
+services:
+  accounts:
+    base-url: ${ACCOUNTS_SERVICE_URL:http://ftms-svc-accounts-api:8080}

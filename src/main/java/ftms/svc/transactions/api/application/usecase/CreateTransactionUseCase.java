@@ -8,6 +8,7 @@ import ftms.svc.transactions.api.domain.model.TransactionStatus;
 import ftms.svc.transactions.api.domain.model.TransactionType;
 import ftms.svc.transactions.api.domain.model.repository.TransactionJpaRepository;
 import ftms.svc.transactions.api.domain.model.repository.TransactionRepository;
+import ftms.svc.transactions.api.application.orchestrator.TransferSagaOrchestrator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,24 +22,29 @@ public class CreateTransactionUseCase {
     private final TransactionRepository transactionRepository;
     private final TransactionJpaRepository transactionJpaRepository;
     private final TransactionMapper transactionMapper;
+    private final TransferSagaOrchestrator transferSagaOrchestrator;
 
-    public CreateTransactionUseCase(TransactionRepository transactionRepository, TransactionJpaRepository transactionJpaRepository,
-                                    TransactionMapper transactionMapper) {
+    public CreateTransactionUseCase(TransactionRepository transactionRepository,
+                                    TransactionJpaRepository transactionJpaRepository,
+                                    TransactionMapper transactionMapper,
+                                    TransferSagaOrchestrator transferSagaOrchestrator) {
         this.transactionRepository = transactionRepository;
         this.transactionJpaRepository = transactionJpaRepository;
         this.transactionMapper = transactionMapper;
+        this.transferSagaOrchestrator = transferSagaOrchestrator;
     }
 
     @Transactional
     public Transaction execute(TransactionRequest request) {
 
-        // Check idempotency
-        Optional<TransactionJpaEntity> existingTx = transactionRepository.findByIdempotencyKey(request.getIdempotencyKey());
+        // ✅ Step 1: Idempotency check
+        Optional<TransactionJpaEntity> existingTx =
+                transactionRepository.findByIdempotencyKey(request.getIdempotencyKey());
         if (existingTx.isPresent()) {
             throw new IllegalArgumentException("Duplicate transaction (idempotency key exists)");
         }
 
-        // Map request to JPA entity
+        // ✅ Step 2: Create initial PENDING transaction record
         TransactionJpaEntity entity = new TransactionJpaEntity();
         entity.setUuid(UUID.randomUUID());
         entity.setIdempotencyKey(request.getIdempotencyKey());
@@ -47,15 +53,17 @@ public class CreateTransactionUseCase {
         entity.setAmount(request.getAmount());
         entity.setCurrency(request.getCurrency());
         entity.setDescription(request.getDescription());
-        entity.setType(request.getType() != null ? request.getType() : null);
+        entity.setType(TransactionType.TRANSFER.name()); // Always TRANSFER for saga flow
         entity.setStatus(TransactionStatus.PENDING.name());
         entity.setCreatedAt(OffsetDateTime.now());
 
-        // Save JPA entity
+        // Save transaction before orchestration starts
         TransactionJpaEntity saved = transactionJpaRepository.save(entity);
 
-        // Convert to domain
-        return transactionMapper.toDomain(saved);
-    }
+        // ✅ Step 3: Start SAGA orchestration (main flow)
+        TransactionJpaEntity result = transferSagaOrchestrator.executeTransfer(saved);
 
+        // ✅ Step 4: Convert to domain model and return
+        return transactionMapper.toDomain(result);
+    }
 }
